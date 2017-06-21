@@ -5,7 +5,7 @@ from xml.etree import cElementTree as et
 import dateutil.parser
 
 
-class ImageDescription:
+class ContentDescription:
     FixedIdentifier = None
     Caption = None
     CreationDate = None
@@ -143,7 +143,7 @@ class ImageDescription:
                 caption = u'{} по {}'.format(caption, self.LicenseEndDate.strftime("%d.%m.%Y"))
 
         if self.Publishing is not None:
-            caption = u'{}\nРедакция: '.format(caption, self.Publishing)
+            caption = u'{}\nРедакция: {}'.format(caption, self.Publishing)
 
         if self.OriginalName is not None:
             caption = u'{}\nИмя файла: {}'.format(caption, self.OriginalName)

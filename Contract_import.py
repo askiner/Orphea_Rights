@@ -1,5 +1,10 @@
 # coding: utf-8
 
+"""TODO: get date of contract
+TODO: set dates to photos
+TODO: set dates to reportage
+TODO: set reportage name"""
+
 from os import path as os_path, remove as os_remove, mkdir, listdir
 from shutil import copyfile
 from subprocess import call
@@ -8,20 +13,24 @@ import time
 from image_description import ContentDescription
 
 # mac config
-locations = {
-    'source': r'/Users/Shared/test/test1',
-    'backup': r'/Users/Shared/test/test-backup',
-    'import': r'/Users/Shared/test/test-import',
-    'xml': r'/Users/Shared/test/test-xml',
-    'reuse_xml': r'/Users/Shared/test/test-reuse'
-}
+#locations = {
+#    'source': r'/Users/Shared/test/test1',
+#    'backup': r'/Users/Shared/test/test-backup',
+#    'import': r'/Users/Shared/test/test-import',
+#    'xml': r'/Users/Shared/test/test-xml',
+#    'reuse_xml': r'/Users/Shared/test/test-reuse'
+#}
 
 # pc config
-#locations = {
-#    'source': r'\\WS01364341.corp.tass.ru\_',
-#    'backup': r'C:\backup\Contract_folder',
-#    'import': r'\\ftp.tass.ru\FTP\Photo\assets\TASS\reserve\Редакция сайта tass.ru'
-#}
+locations = {
+    'source': r'S:\Фото\Контракты',
+    'backup': r'C:\temp\test_backup',
+    #'import': r'C:\temp\test_import',
+    'import': r'\\ftp.tass.ru\FTP\Photo\assets\TASS\Contracts',
+    #'xml': r'C:\temp\test-xml',
+    'xml': r'\\ftp.tass.ru\FTP\Photo\assets\Partners\UPDATE\XML\xml_contracts',
+    'reuse_xml': r'C:\temp\reuse-xml'
+}
 
 good_formats = {
     'image': {'ext': ['jpg', 'jpeg'], 'folder': 'image'},
@@ -154,8 +163,11 @@ def process(location, file):
 
             desc.save_xml(location['xml'])
 
+            if not os_path.exists(os_path.join(location['import'], desc.Publishing, content_type)):
+                mkdir(os_path.join(location['import'], desc.Publishing, content_type))
+
             copyfile(os_path.join(location['source'], file[content_type]['filename']),
-                     os_path.join(location['import'], desc.Publishing, content_type, "{}_{}_{}".format(desc.ContractId, desc.FixedIdentifier, file[content_type]['filename'])))
+                     os_path.join(location['import'], desc.Publishing, content_type, desc.get_filename()))
 
             if reuse_xml:
                 copyfile(os_path.join(location['source'], file['meta']['filename']),

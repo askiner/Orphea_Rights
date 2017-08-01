@@ -17,6 +17,9 @@ class ContentDescription:
     Publishing = None
     Title = None
     OriginalName = None
+    Credit = None
+    Byline = None
+    Sublicense = None
 
     IsReady = True
 
@@ -73,6 +76,12 @@ class ContentDescription:
             if root.find('license') is not None:
                 self.License = root.find('license').text
 
+            if root.find('Sublicense') is not None:
+                self.Sublicense = root.find('Sublicense').text
+
+            if root.find('sublicense') is not None:
+                self.Sublicense = root.find('sublicense').text
+
             if root.find('lincese_start') is not None:
                 self.LicenseStartDate = dateutil.parser.parse(root.find('lincese_start').text)
 
@@ -83,6 +92,19 @@ class ContentDescription:
                 self.Publishing = root.find('publishing').text
             else:
                 self.IsReady = False
+
+            if root.find('byline') is not None:
+                self.Byline = root.find('byline').text
+
+            if root.find('Byline') is not None:
+                self.Byline = root.find('Byline').text
+
+            if root.find('credit') is not None:
+                self.Credit = root.find('credit').text
+
+    def get_filename(self):
+        if self.ContractId is not None and self.FixedIdentifier is not None and self.OriginalName is not None:
+            return "{}_{}_{}".format(self.ContractId, self.FixedIdentifier, self.OriginalName).upper()
 
     def save_xml(self, path):
         """
@@ -107,14 +129,22 @@ class ContentDescription:
         if self.Title:
             et.SubElement(root, "title").text = self.Title
 
-        if self.Caption:
-            new_caption = self.SetNewCaption()
-            et.SubElement(root, "captionweb").text = new_caption
-            et.SubElement(root, "subtitle").text = new_caption
-            et.SubElement(root, "caption").text = new_caption
+        #if self.Caption:
+        new_caption = self.SetNewCaption()
+        et.SubElement(root, "captionweb").text = new_caption
+        et.SubElement(root, "subtitle").text = new_caption
+        et.SubElement(root, "caption").text = new_caption
 
         if self.CreationDate:
             et.SubElement(root, "creationdate").text = self.CreationDate.strftime("%d.%m.%Y")
+
+        if self.Credit:
+            et.SubElement(root, "credit").text = self.Credit
+
+        if self.Byline:
+            et.SubElement(root, "byline").text = self.Byline
+
+        et.SubElement(root, "original_filename").text = self.get_filename()
 
         if filename:
             tree = et.ElementTree(root)
@@ -124,15 +154,29 @@ class ContentDescription:
         """Update caption with licence info
         :return: new caption with additions
         """
-        caption = self.Caption
+
+        if self.Caption is not None:
+            caption = self.Caption
+        else:
+            caption = ""
+
         if self.Contract is not None:
             caption = u'{}\nДоговор: {}'.format(caption, self.Contract)
 
         if self.ContractId is not None:
             caption = u'{}\nДоговор ID: {}'.format(caption, self.ContractId)
 
+        if self.Byline:
+            caption = u'{}\nАвтор: {}'.format(caption, self.Byline)
+
+        if self.Credit:
+            caption = u'{}\nCredit: {}'.format(caption, self.Credit)
+
         if self.License is not None:
             caption = u'{}\nЛицензия: {}'.format(caption, self.License)
+
+        if self.Sublicense is not None:
+            caption = u'{}\nСублицензия: {}'.format(caption, self.Sublicense)
 
         if self.LicenseStartDate is not None or self.LicenseEndDate is not None:
             caption = u'{}\nСрок лицензии:'.format(caption)

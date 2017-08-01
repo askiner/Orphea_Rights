@@ -8,20 +8,21 @@ import time
 from image_description import ContentDescription
 
 # mac config
-locations = {
-    'source': r'/Users/Shared/test/test1',
-    'backup': r'/Users/Shared/test/test-backup',
-    'import': r'/Users/Shared/test/test-import',
-    'xml': r'/Users/Shared/test/test-xml',
-    'reuse_xml': r'/Users/Shared/test/test-reuse'
-}
+#locations = {
+#    'source': r'/Users/Shared/test/test1',
+#    'backup': r'/Users/Shared/test/test-backup',
+#    'import': r'/Users/Shared/test/test-import',
+#    'xml': r'/Users/Shared/test/test-xml',
+#    'reuse_xml': r'/Users/Shared/test/test-reuse'
+#}
 
 # pc config
-#locations = {
-#    'source': r'\\WS01364341.corp.tass.ru\_',
-#    'backup': r'C:\backup\Contract_folder',
-#    'import': r'\\ftp.tass.ru\FTP\Photo\assets\TASS\reserve\Редакция сайта tass.ru'
-#}
+locations = {
+    'source': r'S:\Фото\Контракты\xml-update',
+    'backup': r'C:\backup\Contract_folder',
+    'import': r'\\ftp.tass.ru\FTP\Photo\assets\TASS\reserve\Редакция сайта tass.ru',
+    'xml': r'S:\FTP\Photo\assets\TASS\xml lotus'
+}
 
 good_formats = {
     'image': {'ext': ['jpg', 'jpeg'], 'folder': 'image'},
@@ -113,32 +114,32 @@ def process(location, file):
                 if 'audio' in file.keys() and file['audio'] is not None:
                     content_type = 'audio'
 
-    if 'meta' in file.keys() and content_type is not None:
-        desc = ContentDescription(os_path.join(location['source'], file['meta']['filename']), file[content_type]['filename'])
-        if desc.IsReady and os_path.exists(os_path.join(location['import'], desc.Publishing)):
+    #if 'meta' in file.keys() and content_type is not None:
+    if 'meta' in file.keys():
+        desc = ContentDescription(os_path.join(location['source'], file['meta']['filename']), file['meta']['filename'])
 
-            if do_backup:
-                if os_path.exists(location['backup']):
-                    day_backup_path = os_path.join(location['backup'], time.strftime('%Y-%m-%d'))
-                    if not os_path.exists(day_backup_path):
-                        mkdir(os_path.join(day_backup_path))
+        if do_backup:
+            if os_path.exists(location['backup']):
+                day_backup_path = os_path.join(location['backup'], time.strftime('%Y-%m-%d'))
+                if not os_path.exists(day_backup_path):
+                    mkdir(os_path.join(day_backup_path))
 
-                    for item in file.keys():
-                        if os_path.exists(os_path.join(location['source'], file[item]['filename'])):
-                            copyfile(os_path.join(location['source'], file[item]['filename']),
-                                     os_path.join(day_backup_path, file[item]['filename']))
+                for item in file.keys():
+                    if os_path.exists(os_path.join(location['source'], file[item]['filename'])):
+                        copyfile(os_path.join(location['source'], file[item]['filename']),
+                                 os_path.join(day_backup_path, file[item]['filename']))
 
-            desc.save_xml(location['xml'])
+        desc.save_xml_2(location['xml'])
 
-            # copyfile(os_path.join(location['source'], file[content_type]['filename']),
-            # os_path.join(location['import'], desc.Publishing, content_type, "{}_{}_{}".format(desc.ContractId, desc.FixedIdentifier, file[content_type]['filename'])))
+        # copyfile(os_path.join(location['source'], file[content_type]['filename']),
+        # os_path.join(location['import'], desc.Publishing, content_type, "{}_{}_{}".format(desc.ContractId, desc.FixedIdentifier, file[content_type]['filename'])))
 
-            # if reuse_xml:
-            #     copyfile(os_path.join(location['source'], file['meta']['filename']),
-            #              os_path.join(location['reuse_xml'], file['meta']['filename']))
+        # if reuse_xml:
+        #     copyfile(os_path.join(location['source'], file['meta']['filename']),
+        #              os_path.join(location['reuse_xml'], file['meta']['filename']))
 
-            # os_remove(os_path.join(location['source'], file[content_type]['filename']))
-            os_remove(os_path.join(location['source'], file['meta']['filename']))
+        # os_remove(os_path.join(location['source'], file[content_type]['filename']))
+        os_remove(os_path.join(location['source'], file['meta']['filename']))
 
 
 

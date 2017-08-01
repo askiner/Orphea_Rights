@@ -20,6 +20,7 @@ class ContentDescription:
     Credit = None
     Byline = None
     Sublicense = None
+    Id = None
 
     IsReady = True
 
@@ -36,6 +37,9 @@ class ContentDescription:
         if os_path.exists(file_path):
             self.IsReady = True
             root = et.parse(file_path).getroot()
+
+            if root.find('id_objet') is not None:
+                self.Id = root.find('id_objet').text
 
             if root.find('fixident') is not None:
                 self.FixedIdentifier = root.find('fixident').text
@@ -103,8 +107,20 @@ class ContentDescription:
                 self.Credit = root.find('credit').text
 
     def get_filename(self):
-        if self.ContractId is not None and self.FixedIdentifier is not None and self.OriginalName is not None:
-            return "{}_{}_{}".format(self.ContractId, self.FixedIdentifier, self.OriginalName).upper()
+
+        filename = ''
+        if self.ContractId is not None:
+            filename = "{}".format(self.ContractId)
+
+        if self.FixedIdentifier is not None:
+            filename = "{}_{}".format(filename, self.FixedIdentifier)
+
+        if self.OriginalName is not None:
+            filename = "{}_{}".format(filename, self.OriginalName)
+
+        #if self.ContractId is not None and self.FixedIdentifier is not None and self.OriginalName is not None:
+        #   return "{}_{}_{}".format(self.ContractId, self.FixedIdentifier, self.OriginalName).upper()
+        return filename
 
     def save_xml(self, path):
         """
@@ -126,6 +142,10 @@ class ContentDescription:
             et.SubElement(root, "fixident").text = self.FixedIdentifier
             filename = os_path.join(path, "{}.xml".format(self.FixedIdentifier))
 
+        if self.Id is not None:
+            et.SubElement(root, "id_objet").text = self.Id
+            filename = os_path.join(path, "{}.xml".format(self.Id))
+
         if self.Title:
             et.SubElement(root, "title").text = self.Title
 
@@ -134,6 +154,54 @@ class ContentDescription:
         et.SubElement(root, "captionweb").text = new_caption
         et.SubElement(root, "subtitle").text = new_caption
         et.SubElement(root, "caption").text = new_caption
+
+        if self.CreationDate:
+            et.SubElement(root, "creationdate").text = self.CreationDate.strftime("%d.%m.%Y")
+
+        if self.Credit:
+            et.SubElement(root, "credit").text = self.Credit
+
+        if self.Byline:
+            et.SubElement(root, "byline").text = self.Byline
+
+        et.SubElement(root, "original_filename").text = self.get_filename()
+
+        if filename:
+            tree = et.ElementTree(root)
+            tree.write(filename, encoding='utf-8', xml_declaration=True)
+
+    def save_xml_2(self, path):
+        """
+        Creates and serilizes XML for Orphea
+        :return: None
+        """
+
+        if not path:
+            raise ValueError('path is not set!')
+
+        filename = None
+
+        #if not self.IsReady:
+        #    raise ValueError('Data is not ready!')
+
+        root = et.Element("assets")
+
+        if self.FixedIdentifier is not None:
+            et.SubElement(root, "fixident").text = self.FixedIdentifier
+            filename = os_path.join(path, "{}.xml".format(self.FixedIdentifier))
+
+        if self.Id is not None:
+            et.SubElement(root, "id_objet").text = self.Id
+            filename = os_path.join(path, "{}.xml".format(self.Id))
+
+        if self.Title:
+            et.SubElement(root, "title").text = self.Title
+
+        #if self.Caption:
+        new_caption = self.SetNewCaption()
+        #et.SubElement(root, "captionweb").text = new_caption
+        et.SubElement(root, "subtitle").text = new_caption
+        #et.SubElement(root, "caption").text = new_caption
 
         if self.CreationDate:
             et.SubElement(root, "creationdate").text = self.CreationDate.strftime("%d.%m.%Y")

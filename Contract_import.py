@@ -77,6 +77,10 @@ def main(loc):
 
     for file in listdir(loc['source']):
         input_package = {}
+
+        if os_path.isdir(os_path.join(loc['source'], file)):
+            continue
+
         filename_part, extension = file.split('.')
 
         if filename_part not in build_pairs.keys():
@@ -163,11 +167,12 @@ def process(location, file):
 
             desc.save_xml(location['xml'])
 
-            if not os_path.exists(os_path.join(location['import'], desc.Publishing, content_type)):
-                mkdir(os_path.join(location['import'], desc.Publishing, content_type))
+            # copy to reportage
+            if not os_path.exists(os_path.join(location['import'], desc.Publishing, "reportages", content_type)):
+                mkdir(os_path.join(location['import'], desc.Publishing, "reportages", content_type))
 
             copyfile(os_path.join(location['source'], file[content_type]['filename']),
-                     os_path.join(location['import'], desc.Publishing, content_type, desc.get_filename()))
+                     os_path.join(location['import'], desc.Publishing, "reportages", content_type, desc.get_filename()))
 
             if reuse_xml:
                 copyfile(os_path.join(location['source'], file['meta']['filename']),

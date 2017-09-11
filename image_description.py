@@ -61,10 +61,11 @@ class ContentDescription:
                     self.Title = t_title
             else:
                 if self.Caption is not None:
-                    if len(self.Caption) > self.Limits['Title']:
+                    self.Title = self.Caption
+                    if len(self.Caption) > (self.Limits['Title']):
                         self.Title = self.Caption[:self.Limits['Title']]
-                    else:
-                        self.Title = self.Caption
+                    # else:
+                    #     self.Title = self.Caption
 
             if root.find('creationdate') is not None:
                 self.CreationDate = dateutil.parser.parse(root.find('creationdate').text)
@@ -90,10 +91,10 @@ class ContentDescription:
             if root.find('sublicense') is not None:
                 self.Sublicense = root.find('sublicense').text
 
-            if root.find('lincese_start') is not None:
+            if root.find('lincese_start') is not None and root.find('lincese_start').text is not None:
                 self.LicenseStartDate = dateutil.parser.parse(root.find('lincese_start').text)
 
-            if root.find('lincese_expire') is not None:
+            if root.find('lincese_expire') is not None and root.find('lincese_expire').text is not None:
                 self.LicenseEndDate = dateutil.parser.parse(root.find('lincese_expire').text)
 
             if root.find('publishing') is not None:
@@ -133,7 +134,7 @@ class ContentDescription:
 
         #if self.ContractId is not None and self.FixedIdentifier is not None and self.OriginalName is not None:
         #   return "{}_{}_{}".format(self.ContractId, self.FixedIdentifier, self.OriginalName).upper()
-        return filename
+        return filename.upper()
 
     def save_xml(self, path):
         """

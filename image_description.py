@@ -21,6 +21,10 @@ class ContentDescription:
     Byline = None
     Sublicense = None
     Id = None
+    Author = None               # Real name of the author (or whome rights are belongs)
+
+    Type_of_use = None          # What type of use is allowed
+    Territory = None            # Where are the use of the photo is allowed
 
     IsReady = True
 
@@ -106,6 +110,15 @@ class ContentDescription:
             if root.find('credit') is not None:
                 self.Credit = root.find('credit').text
 
+            if root.find('territory') is not None:
+                self.Territory = root.find('territory').text
+
+            if root.find('typeofuse') is not None:
+                self.Type_of_use = root.find('typeofuse').text
+
+            if root.find('author') is not None:
+                self.Author = root.find('author').text
+
     def get_filename(self):
 
         filename = ''
@@ -163,6 +176,9 @@ class ContentDescription:
 
         if self.Byline:
             et.SubElement(root, "byline").text = self.Byline
+        else:
+            if self.Author:
+                et.SubElement(root, "byline").text = self.Author
 
         et.SubElement(root, "original_filename").text = self.get_filename()
 
@@ -211,6 +227,9 @@ class ContentDescription:
 
         if self.Byline:
             et.SubElement(root, "byline").text = self.Byline
+        else:
+            if self.Author:
+                et.SubElement(root, "byline").text = self.Author
 
         et.SubElement(root, "original_filename").text = self.get_filename()
 
@@ -234,8 +253,11 @@ class ContentDescription:
         if self.ContractId is not None:
             caption = u'{}\nДоговор ID: {}'.format(caption, self.ContractId)
 
+        if self.Author:
+            caption = u'{}\nАвтор: {}'.format(caption, self.Author)
+
         if self.Byline:
-            caption = u'{}\nАвтор: {}'.format(caption, self.Byline)
+            caption = u'{}\nПсевдоним автора: {}'.format(caption, self.Byline)
 
         if self.Credit:
             caption = u'{}\nCredit: {}'.format(caption, self.Credit)
@@ -253,6 +275,12 @@ class ContentDescription:
 
             if self.LicenseEndDate is not None:
                 caption = u'{} по {}'.format(caption, self.LicenseEndDate.strftime("%d.%m.%Y"))
+
+        if self.Type_of_use is not None:
+            caption = u'{}\nРазрешено использование: {}'.format(caption, self.Type_of_use)
+
+        if self.Territory is not None:
+            caption = u'{}\nТерритория использования: {}'.format(caption, self.Territory)
 
         if self.Publishing is not None:
             caption = u'{}\nРедакция: {}'.format(caption, self.Publishing)

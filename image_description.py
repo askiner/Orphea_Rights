@@ -3,6 +3,7 @@
 from os import path as os_path, remove as os_remove, mkdir, listdir
 from xml.etree import cElementTree as et
 import dateutil.parser
+from transliterate import translit  # , get_available_language_codes
 
 
 class ContentDescription:
@@ -114,17 +115,32 @@ class ContentDescription:
             if root.find('territory') is not None:
                 self.Territory = root.find('territory').text
 
+            if root.find('Territory') is not None:
+                self.Territory = root.find('Territory').text
+
             if root.find('typeofuse') is not None:
                 self.Type_of_use = root.find('typeofuse').text
 
             if root.find('author') is not None:
                 self.Author = root.find('author').text
 
+    def clean_for_path_use(self, value):
+        return value.replace('?', '')\
+            .replace('*', ' ')\
+            .replace('_', ' ')\
+            .replace('\'', '')
+
     def get_filename(self):
 
         filename = ''
         if self.ContractId is not None:
             filename = "{}".format(self.ContractId)
+        else:
+            if self.Byline is not None:
+                filename = "{}".format(self.clean_for_path_use(translit(self.Byline, 'ru', reversed=True)))
+            else:
+                if self.Author is not None:
+                    filename = "{}".format(self.clean_for_path_use(translit(self.Author, 'ru', reversed=True)))
 
         if self.FixedIdentifier is not None:
             filename = "{}_{}".format(filename, self.FixedIdentifier)

@@ -23,7 +23,7 @@ from image_description import ContentDescription
 
 # pc config
 locations = {
-    'source': r'S:\Фото\Контракты',
+    'source': [r'\\ftp.tass.ru\FTP\Photo\assets\Partners\Contracts\tassru', r'S:\Фото\Контракты'],
     'backup': r'C:\temp\test_backup',
     #'import': r'C:\temp\test_import',
     'import': r'\\ftp.tass.ru\FTP\Photo\assets\TASS\Contracts',
@@ -33,7 +33,7 @@ locations = {
 }
 
 good_formats = {
-    'image': {'ext': ['jpg', 'jpeg'], 'folder': 'image'},
+    'image': {'ext': ['jpg', 'jpeg', 'png'], 'folder': 'image'},
     'video': {'ext': ['mpg', 'avi', 'qtw', 'gt', 'mp4', 'mts', 'mov'], 'folder': 'video'},
     'graphics': {'ext': ['pdf', 'ai'], 'folder': 'graphics'},
     'audio': {'ext': ['wav', 'mp3', 'ram'], 'folder': 'audio'},
@@ -53,9 +53,15 @@ reuse_xml = True
 
 def is_check_paths(loc):
     for key in loc.keys():
-        if not os_path.exists(loc[key]):
-            print("Folder {} is wrong: {}! Stop processing...".format(key, loc[key]))
-            return False
+        if isinstance(loc[key], list):
+            for pt in loc[key]:
+                if not os_path.exists(pt):
+                    print("Folder {} is wrong! Stop processing...".format(pt))
+                    return False
+        else:
+            if not os_path.exists(loc[key]):
+                print("Folder {} is wrong: {}! Stop processing...".format(key, loc[key]))
+                return False
     return True
 
 
@@ -66,45 +72,58 @@ def path_leaf(path):
 
 def find_with_extension(path, name, extension):
     if os_path.exists(os_path.join(path, "{}.{}".format(name, extension))):
-        return {'filename': "{}.{}".format(name, extension), 'name': name, 'extension': extension}
+        return {'filename': "{}.{}".format(name, extension), 'name': name, 'extension': extension,
+                'filepath': os_path.join(path, "{}.{}".format(name, extension))}
     else:
         return None
 
 
 def main(loc):
-    # search all pairs if no XML - ignore
-    build_pairs = {}
+    for source_path in loc['source']:
+        build_pairs = get_pairs_from_path(source_path)
+        for file_item in build_pairs.keys():
+            try:
+                process(loc, build_pairs[file_item])
+            except:
+                continue
 
-    for file in listdir(loc['source']):
+
+def get_pairs_from_path(path):
+    build_pairs = {}
+    for file in listdir(path):
         input_package = {}
 
-        if os_path.isdir(os_path.join(loc['source'], file)):
+        if os_path.isdir(os_path.join(path, file)):
             continue
 
         filename_part, extension = file.split('.')
 
         if filename_part not in build_pairs.keys():
             if extension.lower() in good_formats['image']['ext']:
-                input_package['image'] = {'filename': file, 'name': filename_part, 'extension': extension.lower()}
-                result = find_with_extension(loc['source'], filename_part, 'xml')
+                input_package['image'] = {'filename': file, 'name': filename_part, 'extension': extension.lower(),
+                                          'filepath': os_path.join(path, file)}
+                result = find_with_extension(path, filename_part, 'xml')
                 if result:
                     input_package['meta'] = result
 
             if extension.lower() in good_formats['audio']['ext']:
-                input_package['audio'] = {'filename': file, 'name': filename_part, 'extension': extension.lower()}
-                result = find_with_extension(loc['source'], filename_part, 'xml')
+                input_package['audio'] = {'filename': file, 'name': filename_part, 'extension': extension.lower(),
+                                          'filepath': os_path.join(path, file)}
+                result = find_with_extension(path, filename_part, 'xml')
                 if result:
                     input_package['meta'] = result
 
             if extension.lower() in good_formats['video']['ext']:
-                input_package['video'] = {'filename': file, 'name': filename_part, 'extension': extension.lower()}
-                result = find_with_extension(loc['source'], filename_part, 'xml')
+                input_package['video'] = {'filename': file, 'name': filename_part, 'extension': extension.lower(),
+                                          'filepath': os_path.join(path, file)}
+                result = find_with_extension(path, filename_part, 'xml')
                 if result:
                     input_package['meta'] = result
 
             if extension.lower() in good_formats['graphics']['ext']:
-                input_package['graphics'] = {'filename': file, 'name': filename_part, 'extension': extension.lower()}
-                result = find_with_extension(loc['source'], filename_part, 'xml')
+                input_package['graphics'] = {'filename': file, 'name': filename_part, 'extension': extension.lower(),
+                                             'filepath': os_path.join(path, file)}
+                result = find_with_extension(path, filename_part, 'xml')
                 if result:
                     input_package['meta'] = result
 
@@ -126,12 +145,7 @@ def main(loc):
                 or ('graphics' in input_package.keys() and input_package['graphics'])) \
                     and 'meta' in input_package.keys() and input_package['meta']:
                 build_pairs[filename_part] = input_package
-
-    for file_item in build_pairs.keys():
-        try:
-            process(loc, build_pairs[file_item])
-        except:
-            continue
+    return build_pairs
 
 
 def process(location, file):
@@ -151,7 +165,8 @@ def process(location, file):
                     content_type = 'audio'
 
     if 'meta' in file.keys() and content_type is not None:
-        desc = ContentDescription(os_path.join(location['source'], file['meta']['filename']), file[content_type]['filename'])
+        # desc = ContentDescription(os_path.join(location['source'], file['meta']['filename']), file[content_type]['filename'])
+        desc = ContentDescription(file['meta']['filepath'], file[content_type]['filename'])
         if desc.IsReady and os_path.exists(os_path.join(location['import'], desc.Publishing)):
 
             if do_backup:
@@ -161,9 +176,10 @@ def process(location, file):
                         mkdir(os_path.join(day_backup_path))
 
                     for item in file.keys():
-                        if os_path.exists(os_path.join(location['source'], file[item]['filename'])):
-                            copyfile(os_path.join(location['source'], file[item]['filename']),
-                                     os_path.join(day_backup_path, file[item]['filename']))
+                        # if os_path.exists(os_path.join(location['source'], file[item]['filename'])):
+                        if os_path.exists(file[item]['filepath']):
+                            # copyfile(os_path.join(location['source'], file[item]['filename']),
+                            copyfile(file[item]['filepath'], os_path.join(day_backup_path, file[item]['filename']))
 
             desc.save_xml(location['xml'])
 
@@ -171,15 +187,19 @@ def process(location, file):
             if not os_path.exists(os_path.join(location['import'], desc.Publishing, "reportages", content_type)):
                 mkdir(os_path.join(location['import'], desc.Publishing, "reportages", content_type))
 
-            copyfile(os_path.join(location['source'], file[content_type]['filename']),
+            # copyfile(os_path.join(location['source'], file[content_type]['filename']),
+            copyfile(file[content_type]['filepath'],
                      os_path.join(location['import'], desc.Publishing, "reportages", content_type, desc.get_filename()))
 
             if reuse_xml:
-                copyfile(os_path.join(location['source'], file['meta']['filename']),
+                # copyfile(os_path.join(location['source'], file['meta']['filename']),
+                copyfile(file['meta']['filepath'],
                          os_path.join(location['reuse_xml'], file['meta']['filename']))
 
-            os_remove(os_path.join(location['source'], file[content_type]['filename']))
-            os_remove(os_path.join(location['source'], file['meta']['filename']))
+            # os_remove(os_path.join(location['source'], file[content_type]['filename']))
+            os_remove(file[content_type]['filepath'])
+            # os_remove(os_path.join(location['source'], file['meta']['filename']))
+            os_remove(file['meta']['filepath'])
 
 
 if __name__ == "__main__":

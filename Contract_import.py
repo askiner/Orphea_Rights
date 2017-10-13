@@ -10,7 +10,12 @@ from shutil import copyfile
 from subprocess import call
 import ntpath
 import time
+import urllib.error # исключение, для получения ситуаций с недоступностью сервиса или изменения его формата
+from json import (loads as jsLoads, dumps as jsDumps)
+from urllib.parse import quote  # кодирование символов (аналог urlencode)
+from urllib.request import Request as HttpRequest, urlopen as UrlOpen
 from image_description import ContentDescription
+import time  # to set delay between updates
 
 # mac config
 #locations = {
@@ -21,6 +26,8 @@ from image_description import ContentDescription
 #    'reuse_xml': r'/Users/Shared/test/test-reuse'
 #}
 
+DELAY = 1  # seconds before next file send
+
 # pc config
 locations = {
     'source': [r'\\ftp.tass.ru\FTP\Photo\assets\Partners\Contracts\tassru', r'S:\Фото\Контракты'],
@@ -29,8 +36,11 @@ locations = {
     'import': r'\\ftp.tass.ru\FTP\Photo\assets\TASS\Contracts',
     #'xml': r'C:\temp\test-xml',
     'xml': r'\\ftp.tass.ru\FTP\Photo\assets\Partners\UPDATE\XML\xml_contracts',
-    'reuse_xml': r'C:\temp\reuse-xml'
+    'reuse_xml': r'C:\temp\reuse-xml',
+    'duplicates': r'C:\temp\test_import\duplicates'
 }
+
+ignore_folders = ['xml-update']
 
 good_formats = {
     'image': {'ext': ['jpg', 'jpeg', 'png'], 'folder': 'image'},
@@ -41,14 +51,50 @@ good_formats = {
     # 'processing': ['jpg', 'jpeg', 'xml']
 }
 
+service_url = 'http://msk-oft-app01:8080/photos/byfilename/{0}'
+
 do_backup = True
 reuse_xml = True
 
+
+def check_file_existence(filename):
+    try:
+        photo_object = get_photo_by_url(service_url.format(quote(filename)))
+        if photo_object is not None and 'Id' in photo_object and int(photo_object['Id']) > 0:
+            return True
+        else:
+            return False
+    except:
+        return False
 
 # def write_fixture(file, guid):
 #    if os_path.exists(file):
 #        cmd_line = 'exiftool "{}" -m -overwrite_original -IPTC:FixtureIdentifier="{}"'.format(file, guid)
 #        call(cmd_line)
+
+
+def get_photo_by_url(url):
+    """ Соединение с сервисом tassphoto.com и получение информации об уже добавленной фото
+    :param url: ссылка для получения информации о фото
+    :return: объект с информацией о фото на сайте
+    """
+    try:
+        with UrlOpen(url) as service_response:
+            if service_response is not None:
+                photos = jsLoads(service_response.read().decode('utf-8'))
+
+                if 'data' in photos and photos['data']:
+                    if isinstance(photos['data'], list):
+                        return photos['data'](1)
+                    elif isinstance(photos['data'], dict):
+                        return photos['data']
+                    else:
+                        raise ValueError("Wrong object in response: {}".format(str(photos['data'])))
+                else:
+                    return None
+
+    except urllib.error.HTTPError as http_error:
+        raise(SystemError("Request error, code: {}, message: {}".format(http_error.code, http_error.msg)))
 
 
 def is_check_paths(loc):
@@ -80,23 +126,46 @@ def find_with_extension(path, name, extension):
 
 def main(loc):
     for source_path in loc['source']:
-        build_pairs = get_pairs_from_path(source_path)
+        # build_pairs = get_pairs_from_path(source_path)
+        build_pairs = get_pairs(source_path)
         for file_item in build_pairs.keys():
-            try:
-                process(loc, build_pairs[file_item])
-            except:
-                continue
+            # try:
+            process(loc, build_pairs[file_item])
+            time.sleep(DELAY)  # sleep 5 seconds
+            # except:
+            #     continue
+
+
+def get_pairs(path):
+    build_pairs = {}
+
+    for fs_item in listdir(path):
+
+        # if folder is in ignore list - proceed to next
+        if fs_item in ignore_folders:
+            continue
+
+        fs_item_path = os_path.join(path, fs_item)
+        if os_path.isdir(fs_item_path):
+            build_pairs.update(get_pairs_from_path(fs_item_path))
+
+    # do it for files
+    build_pairs.update(get_pairs_from_path(path))
+
+    return build_pairs
 
 
 def get_pairs_from_path(path):
     build_pairs = {}
     for file in listdir(path):
+
         input_package = {}
 
         if os_path.isdir(os_path.join(path, file)):
             continue
 
-        filename_part, extension = file.split('.')
+        filename_part, extension = file.rsplit('.', maxsplit=1)
+        print(filename_part)
 
         if filename_part not in build_pairs.keys():
             if extension.lower() in good_formats['image']['ext']:
@@ -169,32 +238,45 @@ def process(location, file):
         desc = ContentDescription(file['meta']['filepath'], file[content_type]['filename'])
         if desc.IsReady and os_path.exists(os_path.join(location['import'], desc.Publishing)):
 
-            if do_backup:
-                if os_path.exists(location['backup']):
-                    day_backup_path = os_path.join(location['backup'], time.strftime('%Y-%m-%d'))
-                    if not os_path.exists(day_backup_path):
-                        mkdir(os_path.join(day_backup_path))
+            print(file[content_type]['filename'])
+            if check_file_existence(desc.get_filename()):
 
-                    for item in file.keys():
-                        # if os_path.exists(os_path.join(location['source'], file[item]['filename'])):
-                        if os_path.exists(file[item]['filepath']):
-                            # copyfile(os_path.join(location['source'], file[item]['filename']),
-                            copyfile(file[item]['filepath'], os_path.join(day_backup_path, file[item]['filename']))
+                # copyfile(os_path.join(location['source'], file[content_type]['filename']),
+                copyfile(file[content_type]['filepath'],
+                         os_path.join(location['duplicates'], desc.get_filename()))
 
-            desc.save_xml(location['xml'])
+                if not os_path.exists(os_path.join(location['duplicates'], 'xml')):
+                    mkdir(os_path.join(location['duplicates'], 'xml'))
+                desc.save_xml(os_path.join(location['duplicates'], 'xml'))
 
-            # copy to reportage
-            if not os_path.exists(os_path.join(location['import'], desc.Publishing, "reportages", content_type)):
-                mkdir(os_path.join(location['import'], desc.Publishing, "reportages", content_type))
+            else:
 
-            # copyfile(os_path.join(location['source'], file[content_type]['filename']),
-            copyfile(file[content_type]['filepath'],
-                     os_path.join(location['import'], desc.Publishing, "reportages", content_type, desc.get_filename()))
+                if do_backup:
+                    if os_path.exists(location['backup']):
+                        day_backup_path = os_path.join(location['backup'], time.strftime('%Y-%m-%d'))
+                        if not os_path.exists(day_backup_path):
+                            mkdir(os_path.join(day_backup_path))
 
-            if reuse_xml:
-                # copyfile(os_path.join(location['source'], file['meta']['filename']),
-                copyfile(file['meta']['filepath'],
-                         os_path.join(location['reuse_xml'], file['meta']['filename']))
+                        for item in file.keys():
+                            # if os_path.exists(os_path.join(location['source'], file[item]['filename'])):
+                            if os_path.exists(file[item]['filepath']):
+                                # copyfile(os_path.join(location['source'], file[item]['filename']),
+                                copyfile(file[item]['filepath'], os_path.join(day_backup_path, file[item]['filename']))
+
+                desc.save_xml(location['xml'])
+
+                # copy to reportage
+                if not os_path.exists(os_path.join(location['import'], desc.Publishing, "reportages", content_type)):
+                    mkdir(os_path.join(location['import'], desc.Publishing, "reportages", content_type))
+
+                # copyfile(os_path.join(location['source'], file[content_type]['filename']),
+                copyfile(file[content_type]['filepath'],
+                         os_path.join(location['import'], desc.Publishing, "reportages", content_type, desc.get_filename()))
+
+                if reuse_xml:
+                    # copyfile(os_path.join(location['source'], file['meta']['filename']),
+                    copyfile(file['meta']['filepath'],
+                             os_path.join(location['reuse_xml'], file['meta']['filename']))
 
             # os_remove(os_path.join(location['source'], file[content_type]['filename']))
             os_remove(file[content_type]['filepath'])

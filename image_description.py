@@ -4,6 +4,7 @@ from os import path as os_path, remove as os_remove, mkdir, listdir
 from xml.etree import cElementTree as et
 import dateutil.parser
 from transliterate import translit  # , get_available_language_codes
+import datetime
 
 
 class ContentDescription:
@@ -69,7 +70,10 @@ class ContentDescription:
                     #     self.Title = self.Caption
 
             if root.find('creationdate') is not None:
-                self.CreationDate = dateutil.parser.parse(root.find('creationdate').text)
+                if root.find('creationdate').text is not None and len(root.find('creationdate').text) > 0:
+                    self.CreationDate = dateutil.parser.parse(root.find('creationdate').text)
+                else:
+                    self.CreationDate = datetime.datetime.now()
             else:
                 self.IsReady = False
 
@@ -146,7 +150,7 @@ class ContentDescription:
             filename = "{}_{}".format(filename, self.FixedIdentifier)
 
         if self.OriginalName is not None:
-            filename = "{}_{}".format(filename, self.OriginalName)
+            filename = "{}_{}".format(filename, translit(self.OriginalName, 'ru', reversed=True))
 
         #if self.ContractId is not None and self.FixedIdentifier is not None and self.OriginalName is not None:
         #   return "{}_{}_{}".format(self.ContractId, self.FixedIdentifier, self.OriginalName).upper()

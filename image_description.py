@@ -68,6 +68,9 @@ class ContentDescription:
                         self.Title = self.Caption[:self.Limits['Title']]
                     # else:
                     #     self.Title = self.Caption
+                else:
+                    if self.Contract is not None:
+                        self.Title = self.Contract
 
             if root.find('creationdate') is not None:
                 if root.find('creationdate').text is not None and len(root.find('creationdate').text) > 0:
@@ -137,8 +140,17 @@ class ContentDescription:
     def get_filename(self):
 
         filename = ''
-        if self.ContractId is not None:
-            filename = "{}".format(self.ContractId)
+        # if self.ContractId is not None:
+        #     filename = "{}".format(self.ContractId)
+
+        if self.Contract is not None:
+            filename = "{}".format(translit(self.Contract, 'ru', reversed=True)
+                                   .replace('?', '')
+                                   .replace('*', '-')
+                                   .replace('_', '-')
+                                   .replace('\'', '')
+                                   .replace('\\', '-')
+                                   .replace('/', '-'))
         else:
             if self.Byline is not None:
                 filename = "{}".format(self.clean_for_path_use(translit(self.Byline, 'ru', reversed=True)))
@@ -150,7 +162,9 @@ class ContentDescription:
             filename = "{}_{}".format(filename, self.FixedIdentifier)
 
         if self.OriginalName is not None:
-            filename = "{}_{}".format(filename, translit(self.OriginalName, 'ru', reversed=True))
+            filename_part, extension = self.OriginalName.rsplit('.', maxsplit=1)
+            filename = "{}.{}".format(filename, extension)
+            # filename = "{}_{}".format(filename, translit(self.OriginalName, 'ru', reversed=True))
 
         #if self.ContractId is not None and self.FixedIdentifier is not None and self.OriginalName is not None:
         #   return "{}_{}_{}".format(self.ContractId, self.FixedIdentifier, self.OriginalName).upper()

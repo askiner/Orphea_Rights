@@ -36,7 +36,7 @@ class ContentDescription:
     }
 
     def __init__(self, file_path, orig_name):
-        self.OriginalName = orig_name
+        # self.OriginalName = orig_name
         self.read_xml(file_path)
 
     def read_xml(self, file_path):
@@ -130,6 +130,9 @@ class ContentDescription:
 
             if root.find('author') is not None:
                 self.Author = root.find('author').text
+
+            if root.find('filename') is not None:
+                self.OriginalName = root.find('filename').text
 
     def clean_for_path_use(self, value):
         return value.replace('?', '')\

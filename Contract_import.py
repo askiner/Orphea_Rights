@@ -31,13 +31,13 @@ DELAY = 1  # seconds before next file send
 # pc config
 locations = {
     'source': [r'\\ftp.tass.ru\FTP\Photo\assets\Partners\Contracts\tassru', r'S:\Фото\Контракты'],
-    'backup': r'C:\temp\test_backup',
+    'backup': r'C:\backup\contracts',
     #'import': r'C:\temp\test_import',
     'import': r'\\ftp.tass.ru\FTP\Photo\assets\TASS\Contracts',
     #'xml': r'C:\temp\test-xml',
     'xml': r'\\ftp.tass.ru\FTP\Photo\assets\Partners\UPDATE\XML\xml_contracts',
-    'reuse_xml': r'C:\temp\reuse-xml',
-    'duplicates': r'C:\temp\test_import\duplicates'
+    'reuse_xml': r'C:\backup\contracts_reuse-xml',
+    'duplicates': r'C:\backup\contracts_duplicates'
 }
 
 ignore_folders = ['xml-update']

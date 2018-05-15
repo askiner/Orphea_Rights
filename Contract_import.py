@@ -30,7 +30,7 @@ DELAY = 1  # seconds before next file send
 
 # pc config
 locations = {
-    'source': [r'\\ftp.tass.ru\FTP\Photo\assets\Partners\Contracts\tassru', r'S:\Фото\Контракты'],
+    'source': [r'\\ftp.tass.ru\FTP\Photo\assets\Partners\Contracts\tassru', r'\\corp.tass.ru\TASS_files\Фото\Контракты'],
     'backup': r'C:\backup\contracts',
     #'import': r'C:\temp\test_import',
     'import': r'\\ftp.tass.ru\FTP\Photo\assets\TASS\Contracts',

@@ -39,6 +39,9 @@ class ContentDescription:
         # self.OriginalName = orig_name
         self.read_xml(file_path)
 
+        if orig_name is not None:
+            self.OriginalName = orig_name
+
     def read_xml(self, file_path):
         if os_path.exists(file_path):
             self.IsReady = True

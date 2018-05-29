@@ -149,14 +149,17 @@ class ContentDescription:
         # if self.ContractId is not None:
         #     filename = "{}".format(self.ContractId)
 
-        if self.Contract is not None:
-            filename = "{}".format(translit(self.Contract, 'ru', reversed=True)
-                                   .replace('?', '')
-                                   .replace('*', '-')
-                                   .replace('_', '-')
-                                   .replace('\'', '')
-                                   .replace('\\', '-')
-                                   .replace('/', '-'))
+        #if self.Contract is not None:
+        if self.ContractId is not None:
+            filename = "{}".format(self.ContractId)
+            #filename = "{}".format(translit(self.Contract, 'ru', reversed=True)
+            #                       .replace('?', '')
+            #                       .replace('*', '-')
+            #                       .replace('_', '-')
+            #                       .replace('\'', '')
+            #                       .replace('\\', '-')
+            #                       .replace('/', '-')
+            #                       .replace('№', '-'))
         else:
             if self.Byline is not None:
                 filename = "{}".format(self.clean_for_path_use(translit(self.Byline, 'ru', reversed=True)))

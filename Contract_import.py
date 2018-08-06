@@ -16,6 +16,7 @@ from urllib.parse import quote  # кодирование символов (ан�
 from urllib.request import Request as HttpRequest, urlopen as UrlOpen
 from image_description import ContentDescription
 import time  # to set delay between updates
+import datetime
 import dateutil.parser
 
 # mac config
@@ -344,5 +345,6 @@ def process(location, file):
 
 
 if __name__ == "__main__":
+    print(datetime.datetime.now())
     if is_check_paths(locations):
         main(locations)

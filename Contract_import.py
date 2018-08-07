@@ -43,7 +43,7 @@ locations = {
     'exiftool': r'C:\Apps\exiftool.exe'
 }
 
-ignore_folders = ['xml-update']
+ignore_folders = ['update', 'delete']
 
 good_formats = {
     'image': {'ext': ['jpg', 'jpeg', 'png'], 'folder': 'image'},

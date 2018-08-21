@@ -18,20 +18,21 @@ from image_description import ContentDescription
 
 # pc config
 locations = {
-    'source': r'S:\Фото\Контракты\xml-update',
+    'source_update': r'S:\Фото\Контракты\update',
+    'source_delete': r'S:\Фото\Контракты\delete',
     'backup': r'C:\backup\Contract_folder',
-    'import': r'\\ftp.tass.ru\FTP\Photo\assets\TASS\reserve\Редакция сайта tass.ru',
-    'xml': r'S:\FTP\Photo\assets\TASS\xml lotus'
+    # 'import': r'\\ftp.tass.ru\FTP\Photo\assets\TASS\reserve\Редакция сайта tass.ru',
+    'xml': r'S:\FTP\Photo\assets\TASS\xml'
 }
 
-good_formats = {
-    'image': {'ext': ['jpg', 'jpeg'], 'folder': 'image'},
-    'video': {'ext': ['mpg', 'avi', 'qtw', 'gt', 'mp4', 'mts', 'mov'], 'folder': 'video'},
-    'graphics': {'ext': ['pdf', 'ai'], 'folder': 'graphics'},
-    'audio': {'ext': ['wav', 'mp3', 'ram'], 'folder': 'audio'},
-    'meta': {'ext': 'xml', 'folder': 'image'}
+# good_formats = {
+#    'image': {'ext': ['jpg', 'jpeg'], 'folder': 'image'},
+#    'video': {'ext': ['mpg', 'avi', 'qtw', 'gt', 'mp4', 'mts', 'mov'], 'folder': 'video'},
+#    'graphics': {'ext': ['pdf', 'ai'], 'folder': 'graphics'},
+#    'audio': {'ext': ['wav', 'mp3', 'ram'], 'folder': 'audio'},
+#    'meta': {'ext': 'xml', 'folder': 'image'}
     # 'processing': ['jpg', 'jpeg', 'xml']
-}
+#}
 
 do_backup = True
 reuse_xml = True
@@ -51,30 +52,32 @@ def is_check_paths(loc):
     return True
 
 
-def path_leaf(path):
-    head, tail = ntpath.split(path)
-    return tail or ntpath.basename(head)
+# def path_leaf(path):
+#    head, tail = ntpath.split(path)
+#    return tail or ntpath.basename(head)
 
 
-def find_with_extension(path, name, extension):
-    if os_path.exists(os_path.join(path, "{}.{}".format(name, extension))):
-        return {'filename': "{}.{}".format(name, extension), 'name': name, 'extension': extension}
-    else:
-        return None
+# def find_with_extension(path, name, extension):
+#    if os_path.exists(os_path.join(path, "{}.{}".format(name, extension))):
+#        return {'filename': "{}.{}".format(name, extension), 'name': name, 'extension': extension}
+#    else:
+#        return None
 
 
 def main(loc):
     # search all pairs if no XML - ignore
-    build_pairs = {}
+    tasks = {}
 
-    for file in listdir(loc['source']):
+    for file in listdir(loc['source_update']):
         input_package = {}
         filename_part, extension = file.split('.')
 
-        if filename_part not in build_pairs.keys():
+        if filename_part not in tasks.keys():
 
-            if extension.lower() in good_formats['meta']['ext']:
-                input_package['meta'] = {'filename': file, 'name': filename_part, 'extension': extension.lower()}
+            # if extension.lower() in good_formats['meta']['ext']:
+            if extension.lower() == 'xml':
+                input_package['meta'] = {'filename': file, 'name': filename_part, 'extension': extension.lower(), 'path': os_path.join(loc['source_update'], file)}
+                input_package['operation'] = 'update'
 
             # if extension.lower() in ['xml']:
             #    input_package['meta'] = {'filename': "{}.xml".format(filename_part),
@@ -89,34 +92,34 @@ def main(loc):
             #            input_package['image'] = result
 
             if 'meta' in input_package.keys() and input_package['meta']:
-                build_pairs[filename_part] = input_package
+                tasks[filename_part] = input_package
 
-    for file_item in build_pairs.keys():
+    for task_item in tasks.keys():
         try:
-            process(loc, build_pairs[file_item])
+            process(loc, tasks[task_item])
         except:
             continue
 
 
 def process(location, file):
 
-    content_type = None
+    # content_type = None
 
-    if 'image' in file.keys() and file['image'] is not None:
-        content_type = 'image'
-    else:
-        if 'video' in file.keys() and file['video'] is not None:
-            content_type = 'video'
-        else:
-            if 'graphics' in file.keys() and file['graphics'] is not None:
-                content_type = 'graphics'
-            else:
-                if 'audio' in file.keys() and file['audio'] is not None:
-                    content_type = 'audio'
+#    if 'image' in file.keys() and file['image'] is not None:
+#        content_type = 'image'
+#    else:
+#        if 'video' in file.keys() and file['video'] is not None:
+#            content_type = 'video'
+#        else:
+#            if 'graphics' in file.keys() and file['graphics'] is not None:
+#                content_type = 'graphics'
+#            else:
+#                if 'audio' in file.keys() and file['audio'] is not None:
+#                    content_type = 'audio'
 
     #if 'meta' in file.keys() and content_type is not None:
     if 'meta' in file.keys():
-        desc = ContentDescription(os_path.join(location['source'], file['meta']['filename']), file['meta']['filename'])
+        desc = ContentDescription(file['meta']['path'], None)
 
         if do_backup:
             if os_path.exists(location['backup']):
@@ -124,10 +127,8 @@ def process(location, file):
                 if not os_path.exists(day_backup_path):
                     mkdir(os_path.join(day_backup_path))
 
-                for item in file.keys():
-                    if os_path.exists(os_path.join(location['source'], file[item]['filename'])):
-                        copyfile(os_path.join(location['source'], file[item]['filename']),
-                                 os_path.join(day_backup_path, file[item]['filename']))
+                if os_path.exists(file['meta']['path']):
+                    copyfile(file['meta']['path'], os_path.join(day_backup_path, file['meta']['filename']))
 
         desc.save_xml_2(location['xml'])
 
@@ -139,7 +140,7 @@ def process(location, file):
         #              os_path.join(location['reuse_xml'], file['meta']['filename']))
 
         # os_remove(os_path.join(location['source'], file[content_type]['filename']))
-        os_remove(os_path.join(location['source'], file['meta']['filename']))
+        os_remove(file['meta']['path'])
 
 
 

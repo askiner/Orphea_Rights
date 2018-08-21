@@ -264,6 +264,8 @@ class ContentDescription:
 
         #if self.Caption:
         new_caption = self.SetNewCaption()
+
+        # TODO: если фото в одном из закрытых контрактных библиотеках -
         #et.SubElement(root, "captionweb").text = new_caption
         et.SubElement(root, "subtitle").text = new_caption
         #et.SubElement(root, "caption").text = new_caption
@@ -280,7 +282,8 @@ class ContentDescription:
             if self.Author:
                 et.SubElement(root, "byline").text = self.Author
 
-        et.SubElement(root, "original_filename").text = self.get_filename()
+        if self.OriginalName:
+            et.SubElement(root, "original_filename").text = self.get_filename()
 
         if filename:
             tree = et.ElementTree(root)

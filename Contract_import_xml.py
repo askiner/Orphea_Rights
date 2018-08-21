@@ -18,11 +18,11 @@ from image_description import ContentDescription
 
 # pc config
 locations = {
-    'source_update': r'S:\Фото\Контракты\update',
-    'source_delete': r'S:\Фото\Контракты\delete',
-    'backup': r'C:\backup\Contract_folder',
+    'source_update': r'\\corp.tass.ru\TASS_Files\Фото\Контракты\update',
+    'source_delete': r'\\corp.tass.ru\TASS_Files\Фото\Контракты\delete',
+    'backup': r'C:\backup\Contracts',
     # 'import': r'\\ftp.tass.ru\FTP\Photo\assets\TASS\reserve\Редакция сайта tass.ru',
-    'xml': r'S:\FTP\Photo\assets\TASS\xml'
+    'xml': r'\\corp.tass.ru\TASS_Files\FTP\Photo\assets\TASS\xml'
 }
 
 # good_formats = {

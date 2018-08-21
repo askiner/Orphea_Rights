@@ -266,9 +266,9 @@ class ContentDescription:
         new_caption = self.SetNewCaption()
 
         # TODO: если фото в одном из закрытых контрактных библиотеках -
-        #et.SubElement(root, "captionweb").text = new_caption
+        et.SubElement(root, "captionweb").text = new_caption
         et.SubElement(root, "subtitle").text = new_caption
-        #et.SubElement(root, "caption").text = new_caption
+        et.SubElement(root, "caption").text = new_caption
 
         if self.CreationDate:
             et.SubElement(root, "creationdate").text = self.CreationDate.strftime("%d.%m.%Y")

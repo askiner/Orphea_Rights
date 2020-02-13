@@ -7,7 +7,7 @@ TODO: set reportage name"""
 
 from os import path as os_path, remove as os_remove, mkdir, listdir
 from shutil import copyfile
-from subprocess import call
+from subprocess import call, Popen, PIPE
 import ntpath
 import time
 import urllib.error # исключение, для получения ситуаций с недоступностью сервиса или изменения его формата
@@ -16,6 +16,8 @@ from urllib.parse import quote  # кодирование символов (ан�
 from urllib.request import Request as HttpRequest, urlopen as UrlOpen
 from image_description import ContentDescription
 import time  # to set delay between updates
+import datetime
+import dateutil.parser
 
 # mac config
 #locations = {
@@ -26,25 +28,27 @@ import time  # to set delay between updates
 #    'reuse_xml': r'/Users/Shared/test/test-reuse'
 #}
 
-DELAY = 1  # seconds before next file send
+DELAY = .5  # seconds before next file send
 
 # pc config
 locations = {
-    'source': [r'\\ftp.tass.ru\FTP\Photo\assets\Partners\Contracts\tassru', r'S:\Фото\Контракты'],
+    'source': [r'\\ftp.tass.ru\FTP\Photo\assets\Partners\Contracts\tassru', r'\\corp.tass.ru\TASS_files\Фото\Контракты'],
     'backup': r'C:\backup\contracts',
     #'import': r'C:\temp\test_import',
     'import': r'\\ftp.tass.ru\FTP\Photo\assets\TASS\Contracts',
     #'xml': r'C:\temp\test-xml',
     'xml': r'\\ftp.tass.ru\FTP\Photo\assets\Partners\UPDATE\XML\xml_contracts',
+    #'xml': r'\\ftp.tass.ru\FTP\Photo\assets\Partners\UPDATE\XML\later',
     'reuse_xml': r'C:\backup\contracts_reuse-xml',
-    'duplicates': r'C:\backup\contracts_duplicates'
+    'duplicates': r'C:\backup\contracts_duplicates',
+    'exiftool': r'C:\Apps\exiftool.exe'
 }
 
-ignore_folders = ['xml-update']
+ignore_folders = ['update', 'delete']
 
 good_formats = {
-    'image': {'ext': ['jpg', 'jpeg', 'png'], 'folder': 'image'},
-    'video': {'ext': ['mpg', 'avi', 'qtw', 'gt', 'mp4', 'mts', 'mov'], 'folder': 'video'},
+    'image': {'ext': ['jpg', 'jpeg', 'png', 'gif'], 'folder': 'image'},
+    'video': {'ext': ['mpg', 'm4v', 'avi', 'qtw', 'gt', 'mp4', 'mts', 'mov'], 'folder': 'video'},
     'graphics': {'ext': ['pdf', 'ai'], 'folder': 'graphics'},
     'audio': {'ext': ['wav', 'mp3', 'ram'], 'folder': 'audio'},
     'meta': {'ext': 'xml', 'folder': 'image'}
@@ -53,7 +57,7 @@ good_formats = {
 
 service_url = 'http://msk-oft-app01:8080/photos/byfilename/{0}'
 
-do_backup = True
+do_backup = False
 reuse_xml = True
 
 
@@ -71,6 +75,58 @@ def check_file_existence(filename):
 #    if os_path.exists(file):
 #        cmd_line = 'exiftool "{}" -m -overwrite_original -IPTC:FixtureIdentifier="{}"'.format(file, guid)
 #        call(cmd_line)
+
+def get_create_date(file):
+    """Получение даты файла, если эта дата не получена из 1С. Приоритет: IPTC:DateCreated, EXIF:DateTimeOriginal, SystemDate"""
+    if os_path.exists(file):
+        result_date = None
+        metadata = get_metadata(file)
+        if metadata is not None:
+            if 'IPTC_DateCreated' in metadata.keys() and metadata['IPTC_DateCreated'] is not None:
+                result_date = metadata['IPTC_DateCreated']
+            else:
+                if 'EXIF_DateTimeOriginal' in metadata.keys() and metadata['EXIF_DateTimeOriginal'] is not None:
+                    result_date = metadata['EXIF_DateTimeOriginal']
+
+        if result_date is None:
+            return datetime.datetime.now()
+        else:
+            return result_date
+
+
+def get_metadata(path_to_file):
+
+    if os_path.exists(path_to_file):
+
+        command = Popen([locations['exiftool'],
+                         path_to_file,
+                         '-IPTC:DateCreated',
+                         '-EXIF:DateTimeOriginal',
+                         '-j'],
+                        stdin=PIPE,
+                        stdout=PIPE,
+                        stderr=PIPE)
+
+        output, err = command.communicate()
+
+        if output:
+            data = jsLoads(output.decode('utf-8'))
+
+            itpc_DateCreated = None
+            exif_DateTimeOriginal = None
+
+            if 'DateCreated' in data[0] and data[0]['DateCreated'] and len(str(data[0]['DateCreated'])) > 0:
+                print(data[0]['DateCreated'])
+                itpc_DateCreated = dateutil.parser.parse(str(data[0]['DateCreated']).replace(":", "-"), default=dateutil.parser.parse("00:00:00Z"))
+                print(itpc_DateCreated)
+
+            if 'DateTimeOriginal' in data[0] and data[0]['DateTimeOriginal'] and len(str(data[0]['DateTimeOriginal'])) > 0:
+                exif_DateTimeOriginal = dateutil.parser.parse(data[0]['DateTimeOriginal'])
+
+            return {'IPTC_DateCreated': itpc_DateCreated, 'EXIF_DateTimeOriginal': exif_DateTimeOriginal }
+
+        else:
+            return None
 
 
 def get_photo_by_url(url):
@@ -235,10 +291,17 @@ def process(location, file):
 
     if 'meta' in file.keys() and content_type is not None:
         # desc = ContentDescription(os_path.join(location['source'], file['meta']['filename']), file[content_type]['filename'])
-        desc = ContentDescription(file['meta']['filepath'], file[content_type]['filename'])
-        if desc.IsReady and os_path.exists(os_path.join(location['import'], desc.Publishing)):
+        print("Processing: {}".format(file[content_type]['filename']))
 
-            print(file[content_type]['filename'])
+        desc = ContentDescription(file['meta']['filepath'], file[content_type]['filename'])
+
+        if desc.CreationDate is None:
+            desc.CreationDate = get_create_date(file[content_type]['filepath'])
+
+        publ = desc.Publishing.replace("\"", "")
+
+        if desc.is_ready() and (os_path.exists(os_path.join(location['import'], desc.Publishing)) or os_path.exists(os_path.join(location['import'], publ))):
+
             if check_file_existence(desc.get_filename()):
 
                 # copyfile(os_path.join(location['source'], file[content_type]['filename']),
@@ -265,13 +328,19 @@ def process(location, file):
 
                 desc.save_xml(location['xml'])
 
-                # copy to reportage
-                if not os_path.exists(os_path.join(location['import'], desc.Publishing, "reportages", content_type)):
-                    mkdir(os_path.join(location['import'], desc.Publishing, "reportages", content_type))
+                print("Test in copy!")
+
+                # copy to reportage                
+                # if not os_path.exists(os_path.join(location['import'], desc.Publishing, "reportages", content_type)):
+                #    mkdir(os_path.join(location['import'], desc.Publishing, "reportages", content_type))
+                if not os_path.exists(os_path.join(location['import'], publ, "reportages", content_type)):
+                    mkdir(os_path.join(location['import'], publ, "reportages", content_type))
 
                 # copyfile(os_path.join(location['source'], file[content_type]['filename']),
+                # copyfile(file[content_type]['filepath'],
+                #         os_path.join(location['import'], desc.Publishing, "reportages", content_type, desc.get_filename()))
                 copyfile(file[content_type]['filepath'],
-                         os_path.join(location['import'], desc.Publishing, "reportages", content_type, desc.get_filename()))
+                         os_path.join(location['import'], publ, "reportages", content_type, desc.get_filename()))
 
                 if reuse_xml:
                     # copyfile(os_path.join(location['source'], file['meta']['filename']),
@@ -285,5 +354,6 @@ def process(location, file):
 
 
 if __name__ == "__main__":
+    print(datetime.datetime.now())
     if is_check_paths(locations):
         main(locations)

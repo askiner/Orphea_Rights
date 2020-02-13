@@ -28,7 +28,7 @@ class ContentDescription:
     Type_of_use = None          # What type of use is allowed
     Territory = None            # Where are the use of the photo is allowed
 
-    IsReady = True
+    # IsReady = True
 
     Limits = {
         'Title': 120,
@@ -39,9 +39,15 @@ class ContentDescription:
         # self.OriginalName = orig_name
         self.read_xml(file_path)
 
+        if orig_name is not None:
+            self.OriginalName = orig_name
+
+    def is_ready(self):
+        return self.FixedIdentifier is not None and self.CreationDate is not None and self.Contract is not None and self.ContractId is not None and self.Publishing is not None
+
     def read_xml(self, file_path):
         if os_path.exists(file_path):
-            self.IsReady = True
+            # self.IsReady = True
             root = et.parse(file_path).getroot()
 
             if root.find('id_objet') is not None:
@@ -49,8 +55,8 @@ class ContentDescription:
 
             if root.find('fixident') is not None:
                 self.FixedIdentifier = root.find('fixident').text
-            else:
-                self.IsReady = False
+            # else:
+            #    self.IsReady = False
 
             if root.find('captionweb') is not None:
                 self.Caption = root.find('captionweb').text
@@ -76,19 +82,20 @@ class ContentDescription:
                 if root.find('creationdate').text is not None and len(root.find('creationdate').text) > 0:
                     self.CreationDate = dateutil.parser.parse(root.find('creationdate').text)
                 else:
-                    self.CreationDate = datetime.datetime.now()
-            else:
-                self.IsReady = False
+                    # self.CreationDate = datetime.datetime.now()
+                    self.CreationDate = None
+            # else:
+            #    self.IsReady = False
 
             if root.find('contract') is not None:
                 self.Contract = root.find('contract').text
-            else:
-                self.IsReady = False
+            # else:
+            #    self.IsReady = False
 
             if root.find('contract_id') is not None:
                 self.ContractId = root.find('contract_id').text
-            else:
-                self.IsReady = False
+            # else:
+            #    self.IsReady = False
 
             if root.find('license') is not None:
                 self.License = root.find('license').text
@@ -107,8 +114,8 @@ class ContentDescription:
 
             if root.find('publishing') is not None:
                 self.Publishing = root.find('publishing').text
-            else:
-                self.IsReady = False
+            # else:
+            #    self.IsReady = False
 
             if root.find('byline') is not None:
                 self.Byline = root.find('byline').text
@@ -146,14 +153,17 @@ class ContentDescription:
         # if self.ContractId is not None:
         #     filename = "{}".format(self.ContractId)
 
-        if self.Contract is not None:
-            filename = "{}".format(translit(self.Contract, 'ru', reversed=True)
-                                   .replace('?', '')
-                                   .replace('*', '-')
-                                   .replace('_', '-')
-                                   .replace('\'', '')
-                                   .replace('\\', '-')
-                                   .replace('/', '-'))
+        #if self.Contract is not None:
+        if self.ContractId is not None:
+            filename = "{}".format(self.ContractId)
+            #filename = "{}".format(translit(self.Contract, 'ru', reversed=True)
+            #                       .replace('?', '')
+            #                       .replace('*', '-')
+            #                       .replace('_', '-')
+            #                       .replace('\'', '')
+            #                       .replace('\\', '-')
+            #                       .replace('/', '-')
+            #                       .replace('№', '-'))
         else:
             if self.Byline is not None:
                 filename = "{}".format(self.clean_for_path_use(translit(self.Byline, 'ru', reversed=True)))
@@ -184,7 +194,8 @@ class ContentDescription:
 
         filename = None
 
-        if not self.IsReady:
+        # if not self.IsReady:
+        if not self.is_ready():
             raise ValueError('Data is not ready!')
 
         root = et.Element("assets")
@@ -253,9 +264,11 @@ class ContentDescription:
 
         #if self.Caption:
         new_caption = self.SetNewCaption()
-        #et.SubElement(root, "captionweb").text = new_caption
+
+        # TODO: если фото в одном из закрытых контрактных библиотеках -
+        et.SubElement(root, "captionweb").text = new_caption
         et.SubElement(root, "subtitle").text = new_caption
-        #et.SubElement(root, "caption").text = new_caption
+        et.SubElement(root, "caption").text = new_caption
 
         if self.CreationDate:
             et.SubElement(root, "creationdate").text = self.CreationDate.strftime("%d.%m.%Y")
@@ -269,7 +282,11 @@ class ContentDescription:
             if self.Author:
                 et.SubElement(root, "byline").text = self.Author
 
-        et.SubElement(root, "original_filename").text = self.get_filename()
+        if self.OriginalName:
+            et.SubElement(root, "original_filename").text = self.get_filename()
+
+        et.SubElement(root, "legal_status").text = "Права подтверждены"
+        et.SubElement(root, "legal_flag").text = "1"
 
         if filename:
             tree = et.ElementTree(root)

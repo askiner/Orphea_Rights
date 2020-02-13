@@ -226,7 +226,7 @@ class ContentDescription:
             et.SubElement(root, "id_objet").text = self.Id
             filename = os_path.join(path, "{}.xml".format(self.Id))
 
-        if self.Title:
+        if self.Title and self.isHidden:
             et.SubElement(root, "title").text = self.Title
 
         #if self.Caption:
@@ -279,7 +279,7 @@ class ContentDescription:
             et.SubElement(root, "id_objet").text = self.Id
             filename = os_path.join(path, "{}.xml".format(self.Id))
 
-        if self.Title:
+        if self.Title and self.isHidden:
             et.SubElement(root, "title").text = self.Title
 
         #if self.Caption:

@@ -88,7 +88,6 @@ def process(location, file):
         print(' - ok\n')
 
 
-
 if __name__ == "__main__":
     if is_check_paths(locations):
         main(locations)

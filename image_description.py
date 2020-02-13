@@ -6,6 +6,8 @@ import dateutil.parser
 from transliterate import translit  # , get_available_language_codes
 import datetime
 
+from tassphoto import get_photo_by_fixtureident
+
 
 class ContentDescription:
     FixedIdentifier = None
@@ -28,6 +30,9 @@ class ContentDescription:
     Type_of_use = None          # What type of use is allowed
     Territory = None            # Where are the use of the photo is allowed
 
+    isHidden = False
+    isError = False
+
     # IsReady = True
 
     Limits = {
@@ -41,6 +46,19 @@ class ContentDescription:
 
         if orig_name is not None:
             self.OriginalName = orig_name
+
+        if self.FixedIdentifier is not None:
+            data = get_photo_by_fixtureident(self.FixedIdentifier)
+            if not data:
+                self.isError = True
+                self.isHidden = True
+            else:
+                self.isError = False
+                if 'Library' in data and data['Library']:
+                    if data['Library'].startswith('Контракты:'):
+                        self.isHidden = True
+                    else:
+                        self.isHidden = False
 
     def is_ready(self):
         return self.FixedIdentifier is not None and self.CreationDate is not None and self.Contract is not None and self.ContractId is not None and self.Publishing is not None
@@ -213,9 +231,11 @@ class ContentDescription:
 
         #if self.Caption:
         new_caption = self.SetNewCaption()
-        et.SubElement(root, "captionweb").text = new_caption
+        if self.isHidden:
+            et.SubElement(root, "captionweb").text = new_caption        
+            et.SubElement(root, "caption").text = new_caption
+            
         et.SubElement(root, "subtitle").text = new_caption
-        et.SubElement(root, "caption").text = new_caption
 
         if self.CreationDate:
             et.SubElement(root, "creationdate").text = self.CreationDate.strftime("%d.%m.%Y")
@@ -266,9 +286,11 @@ class ContentDescription:
         new_caption = self.SetNewCaption()
 
         # TODO: если фото в одном из закрытых контрактных библиотеках -
-        et.SubElement(root, "captionweb").text = new_caption
+        if self.isHidden:
+            et.SubElement(root, "captionweb").text = new_caption        
+            et.SubElement(root, "caption").text = new_caption
+
         et.SubElement(root, "subtitle").text = new_caption
-        et.SubElement(root, "caption").text = new_caption
 
         if self.CreationDate:
             et.SubElement(root, "creationdate").text = self.CreationDate.strftime("%d.%m.%Y")

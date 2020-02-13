@@ -1,47 +1,26 @@
 # coding: utf-8
 
 from os import path as os_path, remove as os_remove, mkdir, listdir
-from shutil import copyfile
+from shutil import copyfile, move
 from subprocess import call
 import ntpath
 import time
 from image_description import ContentDescription
 
-# mac config
-#locations = {
-#    'source': r'/Users/Shared/test/test1',
-#    'backup': r'/Users/Shared/test/test-backup',
-#    'import': r'/Users/Shared/test/test-import',
-#    'xml': r'/Users/Shared/test/test-xml',
-#    'reuse_xml': r'/Users/Shared/test/test-reuse'
-#}
-
 # pc config
 locations = {
     'source_update': r'\\corp.tass.ru\TASS_Files\Фото\Контракты\update',
-    'source_delete': r'\\corp.tass.ru\TASS_Files\Фото\Контракты\delete',
-    'backup': r'C:\backup\Contracts',
+    #'source_update': r'\\corp.tass.ru\TASS_Files\Фото\Контракты\update-test',
+    # 'source_delete': r'\\corp.tass.ru\TASS_Files\Фото\Контракты\delete', # TODO: Add update of this
+    'backup': r'\\corp.tass.ru\TASS_Files\Фото\Контракты\backup',
+    'error': r'\\corp.tass.ru\TASS_Files\Фото\Контракты\errors',
     # 'import': r'\\ftp.tass.ru\FTP\Photo\assets\TASS\reserve\Редакция сайта tass.ru',
     'xml': r'\\corp.tass.ru\TASS_Files\FTP\Photo\assets\TASS\xml'
+    #'xml': r'\\corp.tass.ru\TASS_Files\Фото\Контракты\update-test\result'
 }
-
-# good_formats = {
-#    'image': {'ext': ['jpg', 'jpeg'], 'folder': 'image'},
-#    'video': {'ext': ['mpg', 'avi', 'qtw', 'gt', 'mp4', 'mts', 'mov'], 'folder': 'video'},
-#    'graphics': {'ext': ['pdf', 'ai'], 'folder': 'graphics'},
-#    'audio': {'ext': ['wav', 'mp3', 'ram'], 'folder': 'audio'},
-#    'meta': {'ext': 'xml', 'folder': 'image'}
-    # 'processing': ['jpg', 'jpeg', 'xml']
-#}
 
 do_backup = True
 reuse_xml = True
-
-
-# def write_fixture(file, guid):
-#    if os_path.exists(file):
-#        cmd_line = 'exiftool "{}" -m -overwrite_original -IPTC:FixtureIdentifier="{}"'.format(file, guid)
-#        call(cmd_line)
 
 
 def is_check_paths(loc):
@@ -52,47 +31,24 @@ def is_check_paths(loc):
     return True
 
 
-# def path_leaf(path):
-#    head, tail = ntpath.split(path)
-#    return tail or ntpath.basename(head)
-
-
-# def find_with_extension(path, name, extension):
-#    if os_path.exists(os_path.join(path, "{}.{}".format(name, extension))):
-#        return {'filename': "{}.{}".format(name, extension), 'name': name, 'extension': extension}
-#    else:
-#        return None
-
-
 def main(loc):
     # search all pairs if no XML - ignore
     tasks = {}
 
     for file in listdir(loc['source_update']):
         input_package = {}
-        filename_part, extension = file.split('.')
+        if '.' in file:
+            filename_part, extension = file.split('.')
 
-        if filename_part not in tasks.keys():
+            if filename_part not in tasks.keys():
 
-            # if extension.lower() in good_formats['meta']['ext']:
-            if extension.lower() == 'xml':
-                input_package['meta'] = {'filename': file, 'name': filename_part, 'extension': extension.lower(), 'path': os_path.join(loc['source_update'], file)}
-                input_package['operation'] = 'update'
+                # if extension.lower() in good_formats['meta']['ext']:
+                if extension.lower() == 'xml':
+                    input_package['meta'] = {'filename': file, 'name': filename_part, 'extension': extension.lower(), 'path': os_path.join(loc['source_update'], file)}
+                    input_package['operation'] = 'update'
 
-            # if extension.lower() in ['xml']:
-            #    input_package['meta'] = {'filename': "{}.xml".format(filename_part),
-            #                             'name': filename_part,
-            #                             'extension': 'xml'}
-            #    result = find_with_extension(loc['source'], filename_part, 'jpg')
-            #    if result:
-            #        input_package['image'] = result
-            #    else:
-            #        result = find_with_extention(loc['source'], filename_part, 'jpeg')
-            #       if result:
-            #            input_package['image'] = result
-
-            if 'meta' in input_package.keys() and input_package['meta']:
-                tasks[filename_part] = input_package
+                if 'meta' in input_package.keys() and input_package['meta']:
+                    tasks[filename_part] = input_package
 
     for task_item in tasks.keys():
         try:
@@ -103,23 +59,19 @@ def main(loc):
 
 def process(location, file):
 
-    # content_type = None
-
-#    if 'image' in file.keys() and file['image'] is not None:
-#        content_type = 'image'
-#    else:
-#        if 'video' in file.keys() and file['video'] is not None:
-#            content_type = 'video'
-#        else:
-#            if 'graphics' in file.keys() and file['graphics'] is not None:
-#                content_type = 'graphics'
-#            else:
-#                if 'audio' in file.keys() and file['audio'] is not None:
-#                    content_type = 'audio'
-
-    #if 'meta' in file.keys() and content_type is not None:
     if 'meta' in file.keys():
         desc = ContentDescription(file['meta']['path'], None)
+
+        print(file['meta']['filename'])
+
+        if desc.isError:
+            if os_path.exists(location['error']):
+                try:
+                    move(file['meta']['path'], os_path.join(location['error'], file['meta']['filename']))
+                    print(' - ERROR!\n')
+                except:
+                    return
+            return
 
         if do_backup:
             if os_path.exists(location['backup']):
@@ -132,15 +84,8 @@ def process(location, file):
 
         desc.save_xml_2(location['xml'])
 
-        # copyfile(os_path.join(location['source'], file[content_type]['filename']),
-        # os_path.join(location['import'], desc.Publishing, content_type, "{}_{}_{}".format(desc.ContractId, desc.FixedIdentifier, file[content_type]['filename'])))
-
-        # if reuse_xml:
-        #     copyfile(os_path.join(location['source'], file['meta']['filename']),
-        #              os_path.join(location['reuse_xml'], file['meta']['filename']))
-
-        # os_remove(os_path.join(location['source'], file[content_type]['filename']))
         os_remove(file['meta']['path'])
+        print(' - ok\n')
 
 
 

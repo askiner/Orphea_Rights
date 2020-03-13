@@ -55,7 +55,7 @@ good_formats = {
     # 'processing': ['jpg', 'jpeg', 'xml']
 }
 
-service_url = 'http://msk-oft-app01:8080/photos/byfilename/{0}'
+service_url = 'http://msk-oft-app2:8080/photos/byfilename/{0}'
 
 do_backup = False
 reuse_xml = True

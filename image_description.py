@@ -28,6 +28,9 @@ class ContentDescription:
     Author = None               # Real name of the author (or whome rights are belongs)
 
     Type_of_use = None          # What type of use is allowed
+
+    Sublicense_type_of_use = None   # Виды прав сублицензий
+
     Territory = None            # Where are the use of the photo is allowed
 
     isHidden = False
@@ -152,6 +155,9 @@ class ContentDescription:
 
             if root.find('typeofuse') is not None:
                 self.Type_of_use = root.find('typeofuse').text
+
+            if root.find('sublicense_typeofuse') is not None:
+                self.Sublicense_type_of_use = root.find('sublicense_typeofuse').text
 
             if root.find('author') is not None:
                 self.Author = root.find('author').text
@@ -345,6 +351,9 @@ class ContentDescription:
         if self.Sublicense is not None:
             caption = u'{}\nСублицензия: {}'.format(caption, self.Sublicense)
 
+        if self.Sublicense_type_of_use is not None:
+            caption = u'{}\nВиды прав сублицензий: {}'.format(caption, self.Sublicense_type_of_use)
+
         if self.LicenseStartDate is not None or self.LicenseEndDate is not None:
             caption = u'{}\nСрок лицензии:'.format(caption)
             if self.LicenseStartDate is not None:
@@ -354,7 +363,7 @@ class ContentDescription:
                 caption = u'{} по {}'.format(caption, self.LicenseEndDate.strftime("%d.%m.%Y"))
 
         if self.Type_of_use is not None:
-            caption = u'{}\nРазрешено использование: {}'.format(caption, self.Type_of_use)
+            caption = u'{}\nРазрешено использование: {}'.format(caption, self.Type_of_use)        
 
         if self.Territory is not None:
             caption = u'{}\nТерритория использования: {}'.format(caption, self.Territory)

@@ -15,7 +15,7 @@ locations = {
     'backup': r'\\corp.tass.ru\TASS_Files\Фото\Контракты\backup',
     'error': r'\\corp.tass.ru\TASS_Files\Фото\Контракты\errors',
     # 'import': r'\\ftp.tass.ru\FTP\Photo\assets\TASS\reserve\Редакция сайта tass.ru',
-    'xml': r'\\corp.tass.ru\TASS_Files\FTP\Photo\assets\TASS\xml'
+    'xml': r'\\corp.tass.ru\TASS_Files\FTP\Photo\assets\TASS\xml lotus\TO_ORPHEA'
     #'xml': r'\\corp.tass.ru\TASS_Files\Фото\Контракты\update-test\result'
 }
 

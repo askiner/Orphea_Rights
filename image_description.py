@@ -8,6 +8,8 @@ import datetime
 
 from tassphoto import get_photo_by_fixtureident
 
+TEXT_UPDATE_FROM_1C = "Обновлено по данным 1С"
+
 
 class ContentDescription:
     FixedIdentifier = None
@@ -30,6 +32,7 @@ class ContentDescription:
     Type_of_use = None          # What type of use is allowed
 
     Sublicense_type_of_use = None   # Виды прав сублицензий
+    Sublicense_restrictions = None  # Ограничение на сублицензирование
 
     Territory = None            # Where are the use of the photo is allowed
 
@@ -158,6 +161,9 @@ class ContentDescription:
 
             if root.find('sublicense_typeofuse') is not None:
                 self.Sublicense_type_of_use = root.find('sublicense_typeofuse').text
+
+            if root.find('sublicense_restrictions') is not None:
+                self.Sublicense_restrictions = root.find('sublicense_restrictions').text
 
             if root.find('author') is not None:
                 self.Author = root.find('author').text
@@ -315,6 +321,9 @@ class ContentDescription:
 
         et.SubElement(root, "legal_status").text = "Права подтверждены"
         et.SubElement(root, "legal_flag").text = "1"
+        et.SubElement(root, "legal_reserved").text = TEXT_UPDATE_FROM_1C
+
+        et.SubElement(root, "modified_xml").text = datetime.datetime.now().strftime("DD/MM/YYYY")
 
         if filename:
             tree = et.ElementTree(root)
@@ -353,6 +362,9 @@ class ContentDescription:
 
         if self.Sublicense_type_of_use is not None:
             caption = u'{}\nВиды прав сублицензий: {}'.format(caption, self.Sublicense_type_of_use)
+
+        if self.Sublicense_restrictions is not None:
+            caption = u'{}\nОграничение на сублицензирование: {}'.format(caption, self.Sublicense_restrictions)
 
         if self.LicenseStartDate is not None or self.LicenseEndDate is not None:
             caption = u'{}\nСрок лицензии:'.format(caption)

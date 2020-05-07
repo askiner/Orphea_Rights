@@ -323,7 +323,7 @@ class ContentDescription:
         et.SubElement(root, "legal_flag").text = "1"
         et.SubElement(root, "legal_reserved").text = TEXT_UPDATE_FROM_1C
 
-        et.SubElement(root, "modified_xml").text = datetime.datetime.now().strftime("DD/MM/YYYY")
+        et.SubElement(root, "modified_xml").text = datetime.datetime.now().strftime("%d/%m/%Y")
 
         if filename:
             tree = et.ElementTree(root)

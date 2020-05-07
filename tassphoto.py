@@ -8,7 +8,7 @@ def get_photo_by_fixtureident(guid):
     :return: объект с информацией о фото на сайте
     """
 
-    service_url = 'http://msk-oft-app01.corp.tass.ru:8080/photos/extbyfixid/{0}'.format(guid)
+    service_url = 'http://msk-oft-app2.corp.tass.ru:8080/photos/extbyfixid/{0}'.format(guid)
     try:
         with UrlOpen(service_url) as service_response:
             if service_response is not None:
